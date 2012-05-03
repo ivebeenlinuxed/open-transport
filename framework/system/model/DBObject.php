@@ -109,6 +109,15 @@ abstract class DBObject implements \Library\Database\LinqObject {
 			throw new DBException("No object with ID '$Id'");
 		}
 	}
+	
+	public static function Fetch($id) {
+		$c = get_called_class();
+		try {
+			return new $c($id);
+		} catch (DBException $e) {
+			return false;
+		}
+	}
 
 /**
  * setAttribute
