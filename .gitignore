@@ -1,1 +1,6 @@
+*~
+.settings/
+build/logs/
+tests/framework/
+config.php
 _offline
