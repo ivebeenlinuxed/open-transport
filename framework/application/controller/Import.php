@@ -162,7 +162,7 @@ class Import {
 	 * @return null
 	 */
 	private function journeyPatternSections($x) {
-		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "JourneyPatternSection")) {
+		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "JourneyPatternSections")) {
 			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "JourneyPatternSection") {
 				$this->importJourneyPatternSection($x);
 			}
