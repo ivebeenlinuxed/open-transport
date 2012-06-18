@@ -1,6 +1,8 @@
 <?php
 namespace Controller;
 
+use Model\JourneyPatternTimingLink;
+
 use Model\Route;
 
 use Model\RouteRouteSection;
@@ -32,20 +34,24 @@ class Import {
 					case "Routes":
 						$this->Routes($x);
 						break;
+					case "JourneyPatternSections":
+						$this->journeyPatternSections($x);
+						break;
 					default:
+						echo "UNKNOWN: ";
 						var_dump($x->name);
 						die();
 				}
-				
+
 			}
 		}
 	}
-	
+
 	private function servicedOrganisations($x) {
 		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "ServicedOrganisations")) {
 		}
 	}
-	
+
 	private function stopPoints($x) {
 		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "StopPoints")) {
 			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "StopPoint") {
@@ -53,7 +59,7 @@ class Import {
 			}
 		}
 	}
-	
+
 	private function importStop($xml) {
 		$doc = new \DOMDocument();
 		$doc->loadXML($xml);
@@ -72,6 +78,13 @@ class Import {
 		return $s;
 	}
 	
+	/**
+	 * Imports a route section
+	 * 
+	 * @param \XMLReader $x The current XML Reader at position of start tag
+	 * 
+	 * @return null
+	 */
 	private function routeSections($x) {
 		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "RouteSections")) {
 			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "RouteSection") {
@@ -79,7 +92,7 @@ class Import {
 			}
 		}
 	}
-	
+
 	private function importRouteSection($xml) {
 		$doc = new \DOMDocument();
 		//$doc->preserveWhiteSpace = false;
@@ -92,7 +105,7 @@ class Import {
 		if (($section = RouteSection::Fetch($id)) === false) {
 			$section = RouteSection::Create($id);
 		}
-		
+
 		foreach ($xpath->query("//x:RouteLink") as $l) {
 			$link = array();
 			$link['id'] = $l->attributes->getNamedItem("id")->nodeValue;
@@ -104,15 +117,20 @@ class Import {
 			$section->addLink($lo);
 		}
 	}
-	
+
 	private function Routes($x) {
-	while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "Routes")) {
+		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "Routes")) {
 			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "Route") {
 				$this->importRouteRouteSection($x->readOuterXML());
 			}
 		}
 	}
 	
+	/**
+	 * Imports a route section
+	 * 
+	 * @param string $xml
+	 */
 	private function importRouteRouteSection($xml) {
 		$doc = new \DOMDocument();
 		$doc->loadXML($xml);
@@ -120,18 +138,88 @@ class Import {
 		$xpath->registerNamespace('x', "http://www.transxchange.org.uk/");
 		$r = array();
 		$r['id'] = $doc->getElementsByTagName("Route")->item(0)->attributes->getNamedItem("id")->nodeValue;
-		$r['description'] = $doc->getElementsByTagName("Description")->nodeValue;
+		//FIXME does not import description
+		if ($doc->getElementsByTagName("Description")->length > 0) {
+			$r['description'] = $doc->getElementsByTagName("Description")->item(0)->nodeValue;
+		}
 		//FIXME If we have changed, delete and recreate
 		if (($route = Route::Fetch($r['id'])) === false) {
 			$route = Route::Create($r);
 		}
-	
+
 		foreach ($xpath->query("//x:RouteSectionRef") as $l) {
 			$route->addLink(new RouteSection($l->nodeValue));
 		}
 	}
 	
-	private function journeyPatternImport($x) {
+	/**
+	 * Imports all the JourneyPatternSection elements
+	 * 
+	 * The timing links are grouped using a JourneyPatternSection, allowing the reuse of whole sequences of links in different patterns.
+	 * 
+	 * @param \XMLReader $x The current XML Reader at position of start tag
+	 * 
+	 * @return null
+	 */
+	private function journeyPatternSections($x) {
+		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "JourneyPatternSection")) {
+			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "JourneyPatternSection") {
+				$this->importJourneyPatternSection($x);
+			}
+		}
+	}
+	
+	/**
+	 * Imports one JourneyPatternSection
+	 * 
+	 * @param \XMLReader $x The current XML Reader at position of start tag
+	 * 
+	 * @return null
+	 */
+	private function importJourneyPatternSection($x) {
 		
+		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "JourneyPatternSection")) {
+			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "JourneyPatternTimingLink") {
+				$this->importJourneyPatternTimingLink($x->readOuterXML());
+			}
+		}
+	}
+	
+	/**
+	 * Imports JourneyPattenTimingLink element
+	 * 
+	 * @param string $xml Outer XML String
+	 * 
+	 * @return \Model\JourneyPatternTimingLink
+	 */
+	private function importJourneyPatternTimingLink($xml) {
+		//echo $xml;
+		$doc = new \DOMDocument();
+		$doc->loadXML($xml);
+		$xpath = new \DOMXPath($doc);
+		$xpath->registerNamespace('x', "http://www.transxchange.org.uk/");
+		
+		
+		
+		$link = array();
+		$link['id'] = $doc->getElementsByTagName("JourneyPatternTimingLink")->item(0)->attributes->getNamedItem("id")->nodeValue;
+		$link['to'] = $xpath->query("x:To/x:StopPointRef")->item(0)->nodeValue;
+		$link['from'] = $xpath->query("x:From/x:StopPointRef")->item(0)->nodeValue;
+		if ($xpath->query("x:To/x:WaitTime")->length > 0) {
+			$wt = new \Library\DateIntervalEnhanced($xpath->query("x:To/x:WaitTime")->item(0)->nodeValue);
+			$link['wait_time'] = $wt->toSeconds();
+		}
+		
+		if ($xpath->query("x:To/x:Activity")->length > 0) {
+			$link['activity'] = $xpath->query("x:To/x:Activity")->item(0)->nodeValue;
+		}
+		$link['timing_status'] = $xpath->query("x:To/x:TimingStatus")->item(0)->nodeValue;
+		$rt = new \Library\DateIntervalEnhanced($xpath->query("x:RunTime")->item(0)->nodeValue);
+		$link['run_time'] = $rt->toSeconds();
+		$link['route_link'] = $xpath->query("x:RouteLinkRef")->item(0)->nodeValue;
+		if (($j = JourneyPatternTimingLink::Fetch($link['id'])) !== false) {
+			return $j;
+		}
+		return JourneyPatternTimingLink::Create($link);
 	}
 }

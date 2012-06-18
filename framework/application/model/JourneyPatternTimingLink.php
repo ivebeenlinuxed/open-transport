@@ -26,11 +26,7 @@ namespace Model;
  * @link     http://www.bcslichfield.com/
  *
  */
-class Route extends DBObject {
-	public static function getTable($read=true) {return "route";}
+class JourneyPatternTimingLink extends DBObject {
+	public static function getTable($read=true) {return "journeypattern_timinglink";}
 	public static function getPrimaryKey() {return array("id");}
-	
-	public function addLink(RouteSection $l) {
-		return RouteRouteSection::Add($this, $l);
-	}
 }

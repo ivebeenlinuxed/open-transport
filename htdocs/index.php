@@ -48,14 +48,16 @@ spl_autoload_register("autoload");
 Core\Router::Init();
 
 if (!isset($_SERVER['no_run'])) {
-	if (isset($_SERVER['_']))
+	if (isset($_SERVER['_'])) {
 		$call = Core\Router::getController(array_slice($_SERVER['argv'], 1));
-	else
+		$req = "";
+	} else {
 		$req = $_SERVER['REQUEST_URI'];
-	if (strpos($req, "?")) {
-		$req = substr($req, 0, strpos($req, "?"));
+		if (strpos($req, "?")) {
+			$req = substr($req, 0, strpos($req, "?"));
+		}
+		$call = Core\Router::getController(explode("/", trim($req, "/")));
 	}
-	$call = Core\Router::getController(explode("/", trim($req, "/")));
 
 	$obj = new $call[0];
 	call_user_func_array(array($obj, $call[1]), $call[2]);
