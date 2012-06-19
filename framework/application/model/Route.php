@@ -5,7 +5,7 @@
  * PHP Version: 5.3
  *
  * @category Model
- * @package  Boiler
+ * @package  OpenTransport
  * @author   ivebeenlinuxed <will@bcslichfield.com>
  * @license  GPL v3.0 http://www.gnu.org/licenses/gpl-3.0.txt
  * @link     http://www.bcslichfield.com/
@@ -20,7 +20,7 @@ namespace Model;
  * PHP Version: 5.3
  *
  * @category Model
- * @package  Boiler
+ * @package  OpenTransport
  * @author   ivebeenlinuxed <will@bcslichfield.com>
  * @license  GPL v3.0 http://www.gnu.org/licenses/gpl-3.0.txt
  * @link     http://www.bcslichfield.com/

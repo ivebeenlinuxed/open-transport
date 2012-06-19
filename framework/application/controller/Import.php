@@ -1,6 +1,8 @@
 <?php
 namespace Controller;
 
+use Model\Operator;
+
 use Model\JourneyPatternTimingLink;
 
 use Model\Route;
@@ -36,6 +38,9 @@ class Import {
 						break;
 					case "JourneyPatternSections":
 						$this->journeyPatternSections($x);
+						break;
+					case "Operators":
+						$this->Operators($x);
 						break;
 					default:
 						echo "UNKNOWN: ";
@@ -221,5 +226,44 @@ class Import {
 			return $j;
 		}
 		return JourneyPatternTimingLink::Create($link);
+	}
+	
+	/**
+	 * Import <Operators> tag
+	 * 
+	 * @param \XMLReader $x The current XML Reader at position of start tag
+	 * 
+	 * @return null
+	 */
+	private function Operators($x) {
+		while ($x->read() && !($x->nodeType == \XMLReader::END_ELEMENT && $x->name == "Operators")) {
+			if ($x->nodeType == \XMLReader::ELEMENT && $x->name == "Operator") {
+				$this->importOperator($x->readOuterXML());
+			}
+		}
+	}
+	
+	/**
+	 * Import a single operator
+	 * 
+	 * @param string $xml Outer XML String
+	 * 
+	 * @return null
+	 */
+	private function importOperator($xml) {
+		$doc = new \DOMDocument();
+		$doc->loadXML($xml);
+		$xpath = new \DOMXPath($doc);
+		$xpath->registerNamespace('x', "http://www.transxchange.org.uk/");
+		
+		
+		
+		$operator = array();
+		$operator['code'] = $doc->getElementsByTagName("OperatorCode")->item(0)->nodeValue;
+		$operator['name'] = $doc->getElementsByTagName("OperatorShortName")->item(0)->nodeValue;
+		if (($j = Operator::Fetch($operator['code'])) !== false) {
+			return $j;
+		}
+		return Operator::Create($operator);
 	}
 }
