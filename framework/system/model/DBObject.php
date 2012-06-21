@@ -222,8 +222,9 @@ abstract class DBObject implements \Library\Database\LinqObject {
 	}
 
 	public static function Truncate() {
-		$DB = self::getDB();
-		$sQ = "TRUNCATE `".$c::getTable()."`";
+		$c = get_called_class();
+		$DB = $c::getDB();
+		$sQ = "TRUNCATE TABLE `".$c::getTable()."`";
 		$DB->query($sQ);
 	}
 
